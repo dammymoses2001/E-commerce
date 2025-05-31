@@ -24,7 +24,9 @@ export const useCartStore = create<CartStore>((set, get) => ({
       }
 
       // Persist to IndexedDB with session
-      dbManager.saveCart(newItems, sessionId).catch(console.error)
+      if (typeof window !== "undefined") {
+        dbManager.saveCart(newItems, sessionId).catch(console.error)
+      }
 
       return { items: newItems }
     })
@@ -35,7 +37,9 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
     set((state) => {
       const newItems = state.items.filter((item) => item.id !== productId)
-      dbManager.saveCart(newItems, sessionId).catch(console.error)
+      if (typeof window !== "undefined") {
+        dbManager.saveCart(newItems, sessionId).catch(console.error)
+      }
       return { items: newItems }
     })
   },
@@ -49,7 +53,9 @@ export const useCartStore = create<CartStore>((set, get) => ({
           ? state.items.filter((item) => item.id !== productId)
           : state.items.map((item) => (item.id === productId ? { ...item, quantity } : item))
 
-      dbManager.saveCart(newItems, sessionId).catch(console.error)
+      if (typeof window !== "undefined") {
+        dbManager.saveCart(newItems, sessionId).catch(console.error)
+      }
       return { items: newItems }
     })
   },
@@ -57,7 +63,9 @@ export const useCartStore = create<CartStore>((set, get) => ({
   clearCart: () => {
     const sessionId = SessionManager.getSessionId()
     set({ items: [] })
-    dbManager.saveCart([], sessionId).catch(console.error)
+    if (typeof window !== "undefined") {
+      dbManager.saveCart([], sessionId).catch(console.error)
+    }
   },
 
   getTotalItems: () => {
@@ -80,11 +88,15 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
 // Load cart from IndexedDB on initialization
 if (typeof window !== "undefined") {
-  const sessionId = SessionManager.getSessionId()
-  dbManager
-    .loadCart(sessionId)
-    .then((items) => {
+  const loadCart = async () => {
+    try {
+      const sessionId = SessionManager.getSessionId()
+      const items = await dbManager.loadCart(sessionId)
       useCartStore.setState({ items })
-    })
-    .catch(console.error)
+    } catch (error) {
+      console.error("Failed to load cart:", error)
+    }
+  }
+  
+  loadCart()
 }
